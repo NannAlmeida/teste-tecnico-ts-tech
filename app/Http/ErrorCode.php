@@ -16,7 +16,6 @@ enum ErrorCode: string
     case INVALID_STATUS_TRANSITION = 'INVALID_STATUS_TRANSITION';
     case IMMUTABLE_RESOURCE = 'IMMUTABLE_RESOURCE';
     case IDEMPOTENCY_KEY_REUSE = 'IDEMPOTENCY_KEY_REUSE';
-    case IDEMPOTENCY_IN_PROGRESS = 'IDEMPOTENCY_IN_PROGRESS';
     case RATE_LIMITED = 'RATE_LIMITED';
     case INTERNAL_ERROR = 'INTERNAL_ERROR';
 
@@ -32,8 +31,7 @@ enum ErrorCode: string
             self::VERSION_CONFLICT,
             self::INVALID_STATUS_TRANSITION,
             self::IMMUTABLE_RESOURCE,
-            self::IDEMPOTENCY_KEY_REUSE,
-            self::IDEMPOTENCY_IN_PROGRESS => 409,
+            self::IDEMPOTENCY_KEY_REUSE => 409,
 
             self::VALIDATION_ERROR,
             self::MISSING_VERSION => 422,
@@ -57,7 +55,6 @@ enum ErrorCode: string
             self::INVALID_STATUS_TRANSITION => 'A transição de status solicitada não é permitida.',
             self::IMMUTABLE_RESOURCE => 'O registro está em um estado final e não pode ser alterado.',
             self::IDEMPOTENCY_KEY_REUSE => 'A Idempotency-Key informada já foi usada com outro conteúdo.',
-            self::IDEMPOTENCY_IN_PROGRESS => 'Já existe uma requisição em andamento com esta Idempotency-Key.',
             self::RATE_LIMITED => 'Limite de requisições excedido. Tente novamente em instantes.',
             self::INTERNAL_ERROR => 'Erro interno ao processar a requisição.',
         };
