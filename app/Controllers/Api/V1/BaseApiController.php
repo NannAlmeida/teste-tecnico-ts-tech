@@ -6,6 +6,7 @@ namespace App\Controllers\Api\V1;
 
 use App\Exceptions\ApiException;
 use App\Exceptions\MalformedRequestException;
+use App\Exceptions\ValidationException;
 use App\Http\ApiResponder;
 use App\Http\ErrorCode;
 use App\Http\TraceId;
@@ -106,6 +107,27 @@ abstract class BaseApiController extends Controller
         }
 
         return $corpo;
+    }
+
+    /**
+     * Para rotas que exigem a versao mas nao tem corpo de alteracao, como DELETE
+     * e as transicoes de status.
+     */
+    protected function versaoObrigatoria(): int
+    {
+        $corpo = $this->corpoComVersao();
+
+        if (! array_key_exists('versao', $corpo) || ! is_scalar($corpo['versao'])) {
+            throw MalformedRequestException::missingVersion();
+        }
+
+        $valor = trim((string) $corpo['versao']);
+
+        if (! ctype_digit($valor) || (int) $valor < 1) {
+            throw ValidationException::onField('versao', 'Deve ser um inteiro positivo.');
+        }
+
+        return (int) $valor;
     }
 
     protected function versaoDoIfMatch(): ?string

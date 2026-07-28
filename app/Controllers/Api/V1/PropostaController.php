@@ -57,6 +57,13 @@ final class PropostaController extends BaseApiController
         return $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta);
     }
 
+    public function delete(string $id): ResponseInterface
+    {
+        $this->servico->excluir((int) $id, $this->versaoObrigatoria(), $this->actor());
+
+        return $this->responder->noContent();
+    }
+
     private function comVersao(ResponseInterface $resposta, Proposta $proposta): ResponseInterface
     {
         return $resposta->setHeader('ETag', '"' . $proposta->versao . '"');
