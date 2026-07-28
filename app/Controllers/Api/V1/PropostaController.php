@@ -38,6 +38,13 @@ final class PropostaController extends BaseApiController
         );
     }
 
+    public function show(string $id): ResponseInterface
+    {
+        $proposta = $this->servico->buscar((int) $id);
+
+        return $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta);
+    }
+
     private function comVersao(ResponseInterface $resposta, Proposta $proposta): ResponseInterface
     {
         return $resposta->setHeader('ETag', '"' . $proposta->versao . '"');

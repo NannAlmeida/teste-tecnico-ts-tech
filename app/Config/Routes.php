@@ -12,4 +12,5 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('clientes/(:num)', 'ClienteController::show/$1');
 
     $routes->post('propostas', 'PropostaController::create');
+    $routes->get('propostas/(:num)', 'PropostaController::show/$1');
 });
