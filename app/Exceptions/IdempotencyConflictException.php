@@ -15,12 +15,4 @@ final class IdempotencyConflictException extends ApiException
             details: ['idempotency_key' => $key],
         );
     }
-
-    public static function inProgress(string $key): self
-    {
-        return new self(
-            ErrorCode::IDEMPOTENCY_IN_PROGRESS,
-            details: ['idempotency_key' => $key],
-        );
-    }
 }
