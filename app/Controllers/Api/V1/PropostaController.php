@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers\Api\V1;
+
+use App\DTO\CreatePropostaDTO;
+use App\Entities\Proposta;
+use App\Resources\PropostaResource;
+use App\Services\PropostaService;
+use CodeIgniter\HTTP\ResponseInterface;
+
+final class PropostaController extends BaseApiController
+{
+    private PropostaService $servico;
+
+    public function initController($request, $response, $logger): void
+    {
+        parent::initController($request, $response, $logger);
+
+        $this->servico = service('propostaService');
+    }
+
+    public function create(): ResponseInterface
+    {
+        $resultado = $this->servico->criar(
+            CreatePropostaDTO::fromArray($this->corpo()),
+            $this->actor(),
+            $this->idempotencyKeyObrigatoria(),
+        );
+
+        $proposta = $resultado['recurso'];
+
+        return $this->comMarcaDeReplay(
+            $this->comVersao($this->responder->created(PropostaResource::item($proposta)), $proposta)
+                ->setHeader('Location', '/api/v1/propostas/' . $proposta->id),
+            $resultado['replay'],
+        );
+    }
+
+    private function comVersao(ResponseInterface $resposta, Proposta $proposta): ResponseInterface
+    {
+        return $resposta->setHeader('ETag', '"' . $proposta->versao . '"');
+    }
+}

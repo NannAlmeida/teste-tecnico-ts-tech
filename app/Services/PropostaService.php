@@ -34,7 +34,7 @@ class PropostaService
     {
         $requestHash = IdempotencyService::hash($dados->toArray());
 
-        return $this->idempotencia->ensureOnce(
+        $resultado = $this->idempotencia->ensureOnce(
             $this->repository,
             $idempotencyKey,
             $requestHash,
@@ -59,6 +59,11 @@ class PropostaService
                 return $criada;
             },
         );
+
+        return [
+            'recurso' => $this->repository->findOrFail($resultado['recurso']->id),
+            'replay' => $resultado['replay'],
+        ];
     }
 
     public function buscar(int $id): Proposta

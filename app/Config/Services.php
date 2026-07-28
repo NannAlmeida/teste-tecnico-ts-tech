@@ -4,9 +4,15 @@ namespace Config;
 
 use App\Http\ApiResponder;
 use App\Models\ClienteModel;
+use App\Models\PropostaAuditoriaModel;
+use App\Models\PropostaModel;
 use App\Repositories\ClienteRepository;
+use App\Repositories\PropostaAuditoriaRepository;
+use App\Repositories\PropostaRepository;
+use App\Services\AuditoriaService;
 use App\Services\ClienteService;
 use App\Services\IdempotencyService;
+use App\Services\PropostaService;
 use App\Services\TransactionRunner;
 use CodeIgniter\Config\BaseService;
 
@@ -68,5 +74,48 @@ class Services extends BaseService
         }
 
         return new ClienteService(static::clienteRepository(), static::idempotencyService());
+    }
+
+    public static function propostaRepository(bool $getShared = true): PropostaRepository
+    {
+        if ($getShared) {
+            return static::getSharedInstance('propostaRepository');
+        }
+
+        return new PropostaRepository(new PropostaModel());
+    }
+
+    public static function propostaAuditoriaRepository(bool $getShared = true): PropostaAuditoriaRepository
+    {
+        if ($getShared) {
+            return static::getSharedInstance('propostaAuditoriaRepository');
+        }
+
+        return new PropostaAuditoriaRepository(new PropostaAuditoriaModel());
+    }
+
+    public static function auditoriaService(bool $getShared = true): AuditoriaService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('auditoriaService');
+        }
+
+        return new AuditoriaService(static::propostaAuditoriaRepository());
+    }
+
+    public static function propostaService(bool $getShared = true): PropostaService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('propostaService');
+        }
+
+        return new PropostaService(
+            static::propostaRepository(),
+            static::clienteRepository(),
+            static::auditoriaService(),
+            static::propostaAuditoriaRepository(),
+            static::idempotencyService(),
+            static::transactionRunner(),
+        );
     }
 }
