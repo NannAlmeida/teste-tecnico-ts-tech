@@ -18,6 +18,10 @@ class TransactionRunner
      * da transacao externa: o CodeIgniter conta a profundidade e so a mais
      * externa realmente faz commit ou rollback.
      *
+     * transException(true) e obrigatorio: dentro de transacao o CodeIgniter
+     * engole erro de query por padrao, e a operacao devolveria false em vez de
+     * lancar.
+     *
      * @template T
      *
      * @param callable(): T $operation
@@ -26,7 +30,7 @@ class TransactionRunner
      */
     public function run(callable $operation): mixed
     {
-        $this->db->transBegin();
+        $this->db->transException(true)->transBegin();
 
         try {
             $resultado = $operation();
