@@ -57,6 +57,7 @@ final class PropostaServiceTest extends CIUnitTestCase
             $this->propostas,
             $clientes,
             new AuditoriaService($this->auditorias),
+            $this->auditorias,
             $idempotencia,
             $transacao,
         );

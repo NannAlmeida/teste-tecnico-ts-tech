@@ -47,11 +47,12 @@ class AuditoriaService
         PropostaStatus $para,
         string $actor,
         ?string $idempotencyKey = null,
+        ?string $requestHash = null,
     ): PropostaAuditoria {
         return $this->registrar($propostaId, AuditoriaEvento::STATUS_CHANGED, [
             'de' => $de->value,
             'para' => $para->value,
-        ], $actor, $idempotencyKey);
+        ], $actor, $idempotencyKey, $requestHash);
     }
 
     public function registrarExclusao(Proposta $proposta, string $actor): PropostaAuditoria
@@ -92,6 +93,7 @@ class AuditoriaService
         array $payload,
         string $actor,
         ?string $idempotencyKey = null,
+        ?string $requestHash = null,
     ): PropostaAuditoria {
         $auditoria = new PropostaAuditoria();
         $auditoria->fill([
@@ -100,6 +102,7 @@ class AuditoriaService
             'evento' => $evento,
             'payload' => $payload,
             'idempotency_key' => $idempotencyKey,
+            'request_hash' => $requestHash,
         ]);
 
         return $this->repository->insert($auditoria);
