@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Filters\ApiFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;
@@ -34,6 +35,7 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
+        'api'           => ApiFilter::class,
     ];
 
     /**
@@ -106,5 +108,10 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        'api' => [
+            'before' => ['api/*'],
+            'after' => ['api/*'],
+        ],
+    ];
 }
