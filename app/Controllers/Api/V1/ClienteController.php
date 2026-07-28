@@ -35,4 +35,9 @@ final class ClienteController extends BaseApiController
             $resultado['replay'],
         );
     }
+
+    public function show(string $id): ResponseInterface
+    {
+        return $this->responder->success(ClienteResource::item($this->servico->buscar((int) $id)));
+    }
 }

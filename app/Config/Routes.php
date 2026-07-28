@@ -9,4 +9,5 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('health', 'HealthController::index');
 
     $routes->post('clientes', 'ClienteController::create');
+    $routes->get('clientes/(:num)', 'ClienteController::show/$1');
 });
