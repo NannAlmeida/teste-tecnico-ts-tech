@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Controllers\Api\V1;
 
 use App\Exceptions\ApiException;
+use App\Exceptions\MalformedRequestException;
 use App\Http\ApiResponder;
 use App\Http\ErrorCode;
 use App\Http\TraceId;
 use CodeIgniter\Controller;
+use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,11 @@ use Throwable;
 
 abstract class BaseApiController extends Controller
 {
+    protected const HEADER_IDEMPOTENCY_KEY = 'Idempotency-Key';
+    protected const HEADER_IDEMPOTENCY_REPLAYED = 'Idempotency-Replayed';
+    protected const HEADER_ACTOR = 'X-Actor';
+    protected const HEADER_IF_MATCH = 'If-Match';
+
     protected ApiResponder $responder;
 
     private ?string $traceId = null;
@@ -55,5 +62,59 @@ abstract class BaseApiController extends Controller
     protected function traceId(): string
     {
         return $this->traceId ??= TraceId::fromRequest($this->request);
+    }
+
+    /**
+     * A checagem vive aqui, e nao no ApiFilter, para acontecer dentro do catch
+     * do _remap: excecao lancada em filter escapa do pipeline de teste.
+     *
+     * @return array<string, mixed>
+     */
+    protected function corpo(): array
+    {
+        try {
+            $corpo = $this->request->getJSON(true);
+        } catch (HTTPException) {
+            throw MalformedRequestException::invalidJson();
+        }
+
+        if ($corpo === null) {
+            return [];
+        }
+
+        if (! is_array($corpo)) {
+            throw MalformedRequestException::invalidJson();
+        }
+
+        return $corpo;
+    }
+
+    protected function actor(): string
+    {
+        return trim($this->request->getHeaderLine(self::HEADER_ACTOR));
+    }
+
+    protected function idempotencyKey(): ?string
+    {
+        $chave = trim($this->request->getHeaderLine(self::HEADER_IDEMPOTENCY_KEY));
+
+        return $chave === '' ? null : $chave;
+    }
+
+    protected function idempotencyKeyObrigatoria(): string
+    {
+        return $this->idempotencyKey() ?? throw MalformedRequestException::missingIdempotencyKey();
+    }
+
+    /**
+     * O replay devolve o mesmo status da resposta original, para o cliente que
+     * repetiu nao precisar tratar dois codigos para a mesma operacao. O header
+     * e quem sinaliza que nada foi criado desta vez.
+     */
+    protected function comMarcaDeReplay(ResponseInterface $resposta, bool $replay): ResponseInterface
+    {
+        return $replay
+            ? $resposta->setHeader(self::HEADER_IDEMPOTENCY_REPLAYED, 'true')
+            : $resposta;
     }
 }

@@ -3,6 +3,11 @@
 namespace Config;
 
 use App\Http\ApiResponder;
+use App\Models\ClienteModel;
+use App\Repositories\ClienteRepository;
+use App\Services\ClienteService;
+use App\Services\IdempotencyService;
+use App\Services\TransactionRunner;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -27,5 +32,41 @@ class Services extends BaseService
         }
 
         return new ApiResponder(service('response'));
+    }
+
+    public static function transactionRunner(bool $getShared = true): TransactionRunner
+    {
+        if ($getShared) {
+            return static::getSharedInstance('transactionRunner');
+        }
+
+        return new TransactionRunner(db_connect());
+    }
+
+    public static function idempotencyService(bool $getShared = true): IdempotencyService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('idempotencyService');
+        }
+
+        return new IdempotencyService(static::transactionRunner());
+    }
+
+    public static function clienteRepository(bool $getShared = true): ClienteRepository
+    {
+        if ($getShared) {
+            return static::getSharedInstance('clienteRepository');
+        }
+
+        return new ClienteRepository(new ClienteModel());
+    }
+
+    public static function clienteService(bool $getShared = true): ClienteService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('clienteService');
+        }
+
+        return new ClienteService(static::clienteRepository(), static::idempotencyService());
     }
 }
