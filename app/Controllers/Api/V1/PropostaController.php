@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Api\V1;
 
 use App\DTO\CreatePropostaDTO;
+use App\DTO\UpdatePropostaDTO;
 use App\Entities\Proposta;
 use App\Resources\PropostaResource;
 use App\Services\PropostaService;
@@ -41,6 +42,17 @@ final class PropostaController extends BaseApiController
     public function show(string $id): ResponseInterface
     {
         $proposta = $this->servico->buscar((int) $id);
+
+        return $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta);
+    }
+
+    public function update(string $id): ResponseInterface
+    {
+        $proposta = $this->servico->alterar(
+            (int) $id,
+            UpdatePropostaDTO::fromArray($this->corpoComVersao()),
+            $this->actor(),
+        );
 
         return $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta);
     }

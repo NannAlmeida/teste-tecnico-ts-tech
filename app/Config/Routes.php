@@ -13,4 +13,5 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
     $routes->post('propostas', 'PropostaController::create');
     $routes->get('propostas/(:num)', 'PropostaController::show/$1');
+    $routes->patch('propostas/(:num)', 'PropostaController::update/$1');
 });

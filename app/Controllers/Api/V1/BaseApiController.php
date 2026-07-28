@@ -89,6 +89,33 @@ abstract class BaseApiController extends Controller
         return $corpo;
     }
 
+    /**
+     * A versao pode chegar no corpo ou no header If-Match. O corpo tem
+     * precedencia: se o cliente mandou os dois, o que ele escreveu na requisicao
+     * e mais explicito que o header ecoado do ETag anterior.
+     *
+     * @return array<string, mixed>
+     */
+    protected function corpoComVersao(): array
+    {
+        $corpo = $this->corpo();
+        $ifMatch = $this->versaoDoIfMatch();
+
+        if (! array_key_exists('versao', $corpo) && $ifMatch !== null) {
+            $corpo['versao'] = $ifMatch;
+        }
+
+        return $corpo;
+    }
+
+    protected function versaoDoIfMatch(): ?string
+    {
+        $valor = $this->request->getHeaderLine(self::HEADER_IF_MATCH);
+        $valor = trim(preg_replace('/^W\//', '', trim($valor)), '"');
+
+        return $valor === '' ? null : $valor;
+    }
+
     protected function actor(): string
     {
         return trim($this->request->getHeaderLine(self::HEADER_ACTOR));
