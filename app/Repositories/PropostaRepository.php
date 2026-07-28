@@ -14,7 +14,7 @@ use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
 
-class PropostaRepository
+class PropostaRepository implements IdempotentRepository
 {
     public function __construct(private readonly PropostaModel $model)
     {

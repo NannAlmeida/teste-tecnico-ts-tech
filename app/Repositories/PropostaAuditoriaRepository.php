@@ -9,7 +9,7 @@ use App\Exceptions\DuplicateResourceException;
 use App\Models\PropostaAuditoriaModel;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 
-class PropostaAuditoriaRepository
+class PropostaAuditoriaRepository implements IdempotentRepository
 {
     public function __construct(private readonly PropostaAuditoriaModel $model)
     {

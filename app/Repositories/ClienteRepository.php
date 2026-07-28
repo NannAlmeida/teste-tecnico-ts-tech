@@ -10,9 +10,9 @@ use App\Exceptions\ResourceNotFoundException;
 use App\Models\ClienteModel;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 
-class ClienteRepository
+class ClienteRepository implements IdempotentRepository
 {
-    private const UNIQUE_FIELDS = ['email', 'documento', 'idempotency_key'];
+    private const UNIQUE_FIELDS = ['idempotency_key', 'email', 'documento'];
 
     public function __construct(private readonly ClienteModel $model)
     {
