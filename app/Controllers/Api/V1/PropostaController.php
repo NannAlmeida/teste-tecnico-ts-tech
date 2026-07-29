@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Controllers\Api\V1;
 
 use App\DTO\CreatePropostaDTO;
+use App\DTO\PropostaQuery;
 use App\DTO\UpdatePropostaDTO;
 use App\Entities\Proposta;
+use App\Http\Pagination;
 use App\Resources\PropostaResource;
 use App\Services\PropostaService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -36,6 +38,17 @@ final class PropostaController extends BaseApiController
             $this->comVersao($this->responder->created(PropostaResource::item($proposta)), $proposta)
                 ->setHeader('Location', '/api/v1/propostas/' . $proposta->id),
             $resultado['replay'],
+        );
+    }
+
+    public function index(): ResponseInterface
+    {
+        $query = PropostaQuery::fromArray($this->request->getGet());
+        $resultado = $this->servico->listar($query);
+
+        return $this->responder->paginated(
+            PropostaResource::collection($resultado['items']),
+            new Pagination($query->page, $query->perPage, $resultado['total']),
         );
     }
 

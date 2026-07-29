@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\DTO\CreatePropostaDTO;
+use App\DTO\PropostaQuery;
 use App\DTO\UpdatePropostaDTO;
 use App\Entities\Proposta;
 use App\Enums\PropostaStatus;
@@ -69,6 +70,14 @@ class PropostaService
     public function buscar(int $id): Proposta
     {
         return $this->repository->findOrFail($id);
+    }
+
+    /**
+     * @return array{items: list<Proposta>, total: int}
+     */
+    public function listar(PropostaQuery $query): array
+    {
+        return $this->repository->search($query);
     }
 
     /**
