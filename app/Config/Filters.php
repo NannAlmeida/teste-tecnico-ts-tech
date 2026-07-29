@@ -3,6 +3,7 @@
 namespace Config;
 
 use App\Filters\ApiFilter;
+use App\Filters\ApiThrottleFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;
@@ -36,6 +37,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'api'           => ApiFilter::class,
+        'throttle'      => ApiThrottleFilter::class,
     ];
 
     /**
@@ -112,6 +114,9 @@ class Filters extends BaseFilters
         'api' => [
             'before' => ['api/*'],
             'after' => ['api/*'],
+        ],
+        'throttle' => [
+            'before' => ['api/*'],
         ],
     ];
 }

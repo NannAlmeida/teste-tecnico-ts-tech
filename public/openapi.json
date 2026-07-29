@@ -1,661 +1,1337 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "API de Gestão de Propostas",
-    "version": "1.0.0",
-    "description": "Cadastro de clientes e ciclo de vida de propostas comerciais, com controle de concorrência por versão, idempotência e trilha de auditoria.\n\nUma proposta nasce em `DRAFT`, percorre um fluxo de status controlado e termina num estado final imutável. Toda alteração é versionada e auditada.\n\nNão há autenticação: o autor da ação é informado pelo header `X-Actor`."
-  },
-  "servers": [
-    { "url": "http://localhost:8080", "description": "Desenvolvimento local" }
-  ],
-  "tags": [
-    { "name": "Clientes" },
-    { "name": "Propostas" },
-    { "name": "Auditoria" },
-    { "name": "Operação" }
-  ],
-  "paths": {
-    "/api/v1/health": {
-      "get": {
-        "tags": ["Operação"],
-        "summary": "Verifica se a API responde",
-        "responses": {
-          "200": {
-            "description": "API no ar",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "status": { "type": "string", "example": "ok" },
-                        "timestamp": { "type": "string", "format": "date-time" }
-                      }
+    "openapi": "3.1.0",
+    "info": {
+        "title": "API de Gestão de Propostas",
+        "version": "1.0.0",
+        "description": "Cadastro de clientes e ciclo de vida de propostas comerciais, com controle de concorrência por versão, idempotência e trilha de auditoria.\n\nUma proposta nasce em `DRAFT`, percorre um fluxo de status controlado e termina num estado final imutável. Toda alteração é versionada e auditada.\n\nNão há autenticação: o autor da ação é informado pelo header `X-Actor`.\n\nTodas as rotas sob `/api` sao limitadas por cliente (60 requisicoes por minuto por padrao). Excedido o limite, a resposta e `429 RATE_LIMITED` com `Retry-After`."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Desenvolvimento local"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Clientes"
+        },
+        {
+            "name": "Propostas"
+        },
+        {
+            "name": "Auditoria"
+        },
+        {
+            "name": "Operação"
+        }
+    ],
+    "paths": {
+        "/api/v1/health": {
+            "get": {
+                "tags": [
+                    "Operação"
+                ],
+                "summary": "Verifica se a API responde",
+                "responses": {
+                    "200": {
+                        "description": "API no ar",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "ok"
+                                                },
+                                                "timestamp": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
                     }
-                  }
                 }
-              }
             }
-          }
-        }
-      }
-    },
-    "/api/v1/clientes": {
-      "post": {
-        "tags": ["Clientes"],
-        "summary": "Cadastra um cliente",
-        "description": "Exige `Idempotency-Key`. Repetir com a mesma chave e o mesmo corpo devolve o cliente original com `Idempotency-Replayed: true`.",
-        "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKeyObrigatoria" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/NovoCliente" } }
-          }
         },
-        "responses": {
-          "201": {
-            "description": "Cliente cadastrado, ou repetição de um cadastro anterior",
-            "headers": {
-              "Location": { "schema": { "type": "string" }, "description": "URL do recurso criado" },
-              "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" }
+        "/api/v1/clientes": {
+            "post": {
+                "tags": [
+                    "Clientes"
+                ],
+                "summary": "Cadastra um cliente",
+                "description": "Exige `Idempotency-Key`. Repetir com a mesma chave e o mesmo corpo devolve o cliente original com `Idempotency-Replayed: true`.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyObrigatoria"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NovoCliente"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Cliente cadastrado, ou repetição de um cadastro anterior",
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "description": "URL do recurso criado"
+                            },
+                            "Idempotency-Replayed": {
+                                "$ref": "#/components/headers/IdempotencyReplayed"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Cliente"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/RequisicaoMalformada"
+                    },
+                    "409": {
+                        "description": "E-mail ou documento já cadastrado (`DUPLICATE_RESOURCE`), ou chave reutilizada com outro corpo (`IDEMPOTENCY_KEY_REUSE`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Erro"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
+            }
+        },
+        "/api/v1/clientes/{id}": {
+            "get": {
+                "tags": [
+                    "Clientes"
+                ],
+                "summary": "Consulta um cliente",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cliente encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Cliente"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
+            }
+        },
+        "/api/v1/propostas": {
+            "get": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Lista propostas com filtros, ordenação e paginação",
+                "description": "Parâmetro desconhecido é recusado com 422, para um filtro digitado errado não devolver a coleção inteira parecendo funcionar.",
+                "parameters": [
+                    {
+                        "name": "cliente_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Um valor ou vários separados por vírgula",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "DRAFT,SUBMITTED"
+                    },
+                    {
+                        "name": "origem",
+                        "in": "query",
+                        "description": "Um valor ou vários separados por vírgula",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "APP,API"
+                    },
+                    {
+                        "name": "produto",
+                        "in": "query",
+                        "description": "Busca parcial",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 120
+                        }
+                    },
+                    {
+                        "name": "valor_min",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^\\d{1,10}(\\.\\d{1,2})?$"
+                        },
+                        "example": "199.90"
+                    },
+                    {
+                        "name": "valor_max",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^\\d{1,10}(\\.\\d{1,2})?$"
+                        },
+                        "example": "1899.90"
+                    },
+                    {
+                        "name": "created_from",
+                        "in": "query",
+                        "description": "`YYYY-MM-DD` ou `YYYY-MM-DD HH:MM:SS`. Sem hora, assume o início do dia",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2026-07-01"
+                    },
+                    {
+                        "name": "created_to",
+                        "in": "query",
+                        "description": "Sem hora, assume `23:59:59` do dia",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2026-07-31"
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Texto livre sobre produto, nome e e-mail do cliente",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 120
+                        }
+                    },
+                    {
+                        "name": "incluir_excluidas",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false",
+                                "1",
+                                "0"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Colunas separadas por vírgula. Prefixo `-` inverte a direção.",
+                        "schema": {
+                            "type": "string",
+                            "default": "-created_at"
+                        },
+                        "example": "-valor_mensal,created_at"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Página de resultados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Proposta"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/Meta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
             },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/Cliente" } }
+            "post": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Cria uma proposta",
+                "description": "Nasce sempre em `DRAFT` com `versao` 1. Exige `Idempotency-Key`.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyObrigatoria"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NovaProposta"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Proposta criada, ou repetição de uma criação anterior",
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            },
+                            "Idempotency-Replayed": {
+                                "$ref": "#/components/headers/IdempotencyReplayed"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Proposta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/RequisicaoMalformada"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "description": "Payload inválido. Cliente inexistente também cai aqui, no campo `cliente_id`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Erro"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
                 }
-              }
             }
-          },
-          "400": { "$ref": "#/components/responses/RequisicaoMalformada" },
-          "409": {
-            "description": "E-mail ou documento já cadastrado (`DUPLICATE_RESOURCE`), ou chave reutilizada com outro corpo (`IDEMPOTENCY_KEY_REUSE`)",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-          },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/clientes/{id}": {
-      "get": {
-        "tags": ["Clientes"],
-        "summary": "Consulta um cliente",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cliente encontrado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/Cliente" } }
-                }
-              }
-            }
-          },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" }
-        }
-      }
-    },
-    "/api/v1/propostas": {
-      "get": {
-        "tags": ["Propostas"],
-        "summary": "Lista propostas com filtros, ordenação e paginação",
-        "description": "Parâmetro desconhecido é recusado com 422, para um filtro digitado errado não devolver a coleção inteira parecendo funcionar.",
-        "parameters": [
-          { "name": "cliente_id", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Um valor ou vários separados por vírgula",
-            "schema": { "type": "string" },
-            "example": "DRAFT,SUBMITTED"
-          },
-          {
-            "name": "origem",
-            "in": "query",
-            "description": "Um valor ou vários separados por vírgula",
-            "schema": { "type": "string" },
-            "example": "APP,API"
-          },
-          { "name": "produto", "in": "query", "description": "Busca parcial", "schema": { "type": "string", "maxLength": 120 } },
-          { "name": "valor_min", "in": "query", "schema": { "type": "string", "pattern": "^\\d{1,10}(\\.\\d{1,2})?$" }, "example": "199.90" },
-          { "name": "valor_max", "in": "query", "schema": { "type": "string", "pattern": "^\\d{1,10}(\\.\\d{1,2})?$" }, "example": "1899.90" },
-          { "name": "created_from", "in": "query", "description": "`YYYY-MM-DD` ou `YYYY-MM-DD HH:MM:SS`. Sem hora, assume o início do dia", "schema": { "type": "string" }, "example": "2026-07-01" },
-          { "name": "created_to", "in": "query", "description": "Sem hora, assume `23:59:59` do dia", "schema": { "type": "string" }, "example": "2026-07-31" },
-          { "name": "q", "in": "query", "description": "Texto livre sobre produto, nome e e-mail do cliente", "schema": { "type": "string", "maxLength": 120 } },
-          { "name": "incluir_excluidas", "in": "query", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Colunas separadas por vírgula. Prefixo `-` inverte a direção.",
-            "schema": { "type": "string", "default": "-created_at" },
-            "example": "-valor_mensal,created_at"
-          },
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PerPage" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "Página de resultados",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Proposta" } },
-                    "meta": { "$ref": "#/components/schemas/Meta" }
-                  }
-                }
-              }
-            }
-          },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      },
-      "post": {
-        "tags": ["Propostas"],
-        "summary": "Cria uma proposta",
-        "description": "Nasce sempre em `DRAFT` com `versao` 1. Exige `Idempotency-Key`.",
-        "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKeyObrigatoria" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/NovaProposta" } }
-          }
         },
-        "responses": {
-          "201": {
-            "description": "Proposta criada, ou repetição de uma criação anterior",
-            "headers": {
-              "Location": { "schema": { "type": "string" } },
-              "ETag": { "$ref": "#/components/headers/ETag" },
-              "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" }
+        "/api/v1/propostas/{id}": {
+            "get": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Consulta uma proposta",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proposta encontrada",
+                        "headers": {
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Proposta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
             },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/Proposta" } }
+            "patch": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Altera campos da proposta",
+                "description": "Alteração parcial: só os campos presentes no corpo mudam. Permitido apenas em `DRAFT` e `SUBMITTED`.\n\nExige a versão esperada, no corpo ou no header `If-Match`. Corpo que não altera nada devolve a proposta intacta, sem incrementar a versão.\n\n`status` não é alterável aqui — use as rotas de transição.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AlteracaoProposta"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Proposta alterada",
+                        "headers": {
+                            "ETag": {
+                                "$ref": "#/components/headers/ETag"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Proposta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/RequisicaoMalformada"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
                 }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/RequisicaoMalformada" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": {
-            "description": "Payload inválido. Cliente inexistente também cai aqui, no campo `cliente_id`.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-          }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}": {
-      "get": {
-        "tags": ["Propostas"],
-        "summary": "Consulta uma proposta",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "Proposta encontrada",
-            "headers": { "ETag": { "$ref": "#/components/headers/ETag" } },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/Proposta" } }
+            },
+            "delete": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Exclui logicamente a proposta",
+                "description": "A linha permanece no banco com `deleted_at` preenchido, a versão é incrementada e a auditoria registra `DELETED_LOGICAL`. O recurso passa a responder 404.\n\nExige a versão esperada e é recusada em estado final.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Versao"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Excluída. Sem corpo."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
                 }
-              }
             }
-          },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" }
-        }
-      },
-      "patch": {
-        "tags": ["Propostas"],
-        "summary": "Altera campos da proposta",
-        "description": "Alteração parcial: só os campos presentes no corpo mudam. Permitido apenas em `DRAFT` e `SUBMITTED`.\n\nExige a versão esperada, no corpo ou no header `If-Match`. Corpo que não altera nada devolve a proposta intacta, sem incrementar a versão.\n\n`status` não é alterável aqui — use as rotas de transição.",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/AlteracaoProposta" } }
-          }
         },
-        "responses": {
-          "200": {
-            "description": "Proposta alterada",
-            "headers": { "ETag": { "$ref": "#/components/headers/ETag" } },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/Proposta" } }
+        "/api/v1/propostas/{id}/submit": {
+            "post": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Submete a proposta (DRAFT → SUBMITTED)",
+                "description": "Exige `Idempotency-Key`. Repetir com a mesma chave devolve a resposta original sem registrar nova transição.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyObrigatoria"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/Versao"
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PropostaTransicionada"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/RequisicaoMalformada"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
                 }
-              }
             }
-          },
-          "400": { "$ref": "#/components/responses/RequisicaoMalformada" },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      },
-      "delete": {
-        "tags": ["Propostas"],
-        "summary": "Exclui logicamente a proposta",
-        "description": "A linha permanece no banco com `deleted_at` preenchido, a versão é incrementada e a auditoria registra `DELETED_LOGICAL`. O recurso passa a responder 404.\n\nExige a versão esperada e é recusada em estado final.",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/Versao" } }
-          }
         },
-        "responses": {
-          "204": { "description": "Excluída. Sem corpo." },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}/submit": {
-      "post": {
-        "tags": ["Propostas"],
-        "summary": "Submete a proposta (DRAFT → SUBMITTED)",
-        "description": "Exige `Idempotency-Key`. Repetir com a mesma chave devolve a resposta original sem registrar nova transição.",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IdempotencyKeyObrigatoria" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": { "$ref": "#/components/requestBodies/Versao" },
-        "responses": {
-          "200": { "$ref": "#/components/responses/PropostaTransicionada" },
-          "400": { "$ref": "#/components/responses/RequisicaoMalformada" },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}/approve": {
-      "post": {
-        "tags": ["Propostas"],
-        "summary": "Aprova a proposta (SUBMITTED → APPROVED)",
-        "description": "`Idempotency-Key` é opcional aqui, mas honrada se enviada.",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IdempotencyKeyOpcional" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": { "$ref": "#/components/requestBodies/Versao" },
-        "responses": {
-          "200": { "$ref": "#/components/responses/PropostaTransicionada" },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}/reject": {
-      "post": {
-        "tags": ["Propostas"],
-        "summary": "Rejeita a proposta (SUBMITTED → REJECTED)",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IdempotencyKeyOpcional" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": { "$ref": "#/components/requestBodies/Versao" },
-        "responses": {
-          "200": { "$ref": "#/components/responses/PropostaTransicionada" },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}/cancel": {
-      "post": {
-        "tags": ["Propostas"],
-        "summary": "Cancela a proposta (DRAFT ou SUBMITTED → CANCELED)",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/IdempotencyKeyOpcional" },
-          { "$ref": "#/components/parameters/IfMatch" },
-          { "$ref": "#/components/parameters/Actor" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "requestBody": { "$ref": "#/components/requestBodies/Versao" },
-        "responses": {
-          "200": { "$ref": "#/components/responses/PropostaTransicionada" },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "409": { "$ref": "#/components/responses/Conflito" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
-        }
-      }
-    },
-    "/api/v1/propostas/{id}/auditoria": {
-      "get": {
-        "tags": ["Auditoria"],
-        "summary": "Lista a trilha de auditoria da proposta",
-        "description": "Ordem cronológica. Proposta excluída logicamente responde 404, embora os registros permaneçam no banco.",
-        "parameters": [
-          { "$ref": "#/components/parameters/Id" },
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PerPage" },
-          { "$ref": "#/components/parameters/TraceId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "Página da trilha",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Auditoria" } },
-                    "meta": { "$ref": "#/components/schemas/Meta" }
-                  }
+        "/api/v1/propostas/{id}/approve": {
+            "post": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Aprova a proposta (SUBMITTED → APPROVED)",
+                "description": "`Idempotency-Key` é opcional aqui, mas honrada se enviada.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyOpcional"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/Versao"
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PropostaTransicionada"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
                 }
-              }
             }
-          },
-          "404": { "$ref": "#/components/responses/NaoEncontrado" },
-          "422": { "$ref": "#/components/responses/ErroDeValidacao" }
+        },
+        "/api/v1/propostas/{id}/reject": {
+            "post": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Rejeita a proposta (SUBMITTED → REJECTED)",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyOpcional"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/Versao"
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PropostaTransicionada"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
+            }
+        },
+        "/api/v1/propostas/{id}/cancel": {
+            "post": {
+                "tags": [
+                    "Propostas"
+                ],
+                "summary": "Cancela a proposta (DRAFT ou SUBMITTED → CANCELED)",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKeyOpcional"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IfMatch"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Actor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/Versao"
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/PropostaTransicionada"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflito"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
+            }
+        },
+        "/api/v1/propostas/{id}/auditoria": {
+            "get": {
+                "tags": [
+                    "Auditoria"
+                ],
+                "summary": "Lista a trilha de auditoria da proposta",
+                "description": "Ordem cronológica. Proposta excluída logicamente responde 404, embora os registros permaneçam no banco.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/TraceId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Página da trilha",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Auditoria"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/Meta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NaoEncontrado"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErroDeValidacao"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/LimiteExcedido"
+                    }
+                }
+            }
         }
-      }
-    }
-  },
-  "components": {
-    "parameters": {
-      "Id": {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": { "type": "integer", "minimum": 1 }
-      },
-      "IdempotencyKeyObrigatoria": {
-        "name": "Idempotency-Key",
-        "in": "header",
-        "required": true,
-        "description": "Identifica a operação. Repetir com a mesma chave não cria um segundo registro.",
-        "schema": { "type": "string", "maxLength": 255 },
-        "example": "8f14e45f-ea1b-4c1e-9f52-9d2a1c3b4e5f"
-      },
-      "IdempotencyKeyOpcional": {
-        "name": "Idempotency-Key",
-        "in": "header",
-        "required": false,
-        "description": "Opcional nesta rota, mas honrada se enviada.",
-        "schema": { "type": "string", "maxLength": 255 }
-      },
-      "IfMatch": {
-        "name": "If-Match",
-        "in": "header",
-        "required": false,
-        "description": "Versão esperada do recurso, normalmente o `ETag` da leitura anterior. O campo `versao` no corpo tem precedência.",
-        "schema": { "type": "string" },
-        "example": "\"2\""
-      },
-      "Actor": {
-        "name": "X-Actor",
-        "in": "header",
-        "required": false,
-        "description": "Autor da ação registrado na auditoria. Ausente vira `system`.",
-        "schema": { "type": "string", "maxLength": 100 },
-        "example": "user:123"
-      },
-      "TraceId": {
-        "name": "X-Trace-Id",
-        "in": "header",
-        "required": false,
-        "description": "Se enviado, é propagado na resposta e no log. Ausente, a API gera um.",
-        "schema": { "type": "string" }
-      },
-      "Page": {
-        "name": "page",
-        "in": "query",
-        "schema": { "type": "integer", "minimum": 1, "default": 1 }
-      },
-      "PerPage": {
-        "name": "per_page",
-        "in": "query",
-        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
-      }
     },
-    "headers": {
-      "ETag": {
-        "description": "Versão atual do recurso, pronta para o `If-Match` seguinte",
-        "schema": { "type": "string" },
-        "example": "\"2\""
-      },
-      "IdempotencyReplayed": {
-        "description": "`true` quando a resposta repete uma operação anterior e nada foi criado ou alterado",
-        "schema": { "type": "string", "enum": ["true"] }
-      }
-    },
-    "requestBodies": {
-      "Versao": {
-        "required": false,
-        "description": "A versão pode vir aqui ou no header `If-Match`.",
-        "content": {
-          "application/json": { "schema": { "$ref": "#/components/schemas/Versao" } }
-        }
-      }
-    },
-    "responses": {
-      "PropostaTransicionada": {
-        "description": "Transição aplicada, ou repetição de uma anterior",
+    "components": {
+        "parameters": {
+            "Id": {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "IdempotencyKeyObrigatoria": {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Identifica a operação. Repetir com a mesma chave não cria um segundo registro.",
+                "schema": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "example": "8f14e45f-ea1b-4c1e-9f52-9d2a1c3b4e5f"
+            },
+            "IdempotencyKeyOpcional": {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": false,
+                "description": "Opcional nesta rota, mas honrada se enviada.",
+                "schema": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            },
+            "IfMatch": {
+                "name": "If-Match",
+                "in": "header",
+                "required": false,
+                "description": "Versão esperada do recurso, normalmente o `ETag` da leitura anterior. O campo `versao` no corpo tem precedência.",
+                "schema": {
+                    "type": "string"
+                },
+                "example": "\"2\""
+            },
+            "Actor": {
+                "name": "X-Actor",
+                "in": "header",
+                "required": false,
+                "description": "Autor da ação registrado na auditoria. Ausente vira `system`.",
+                "schema": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "example": "user:123"
+            },
+            "TraceId": {
+                "name": "X-Trace-Id",
+                "in": "header",
+                "required": false,
+                "description": "Se enviado, é propagado na resposta e no log. Ausente, a API gera um.",
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "Page": {
+                "name": "page",
+                "in": "query",
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                }
+            },
+            "PerPage": {
+                "name": "per_page",
+                "in": "query",
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                }
+            }
+        },
         "headers": {
-          "ETag": { "$ref": "#/components/headers/ETag" },
-          "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" }
+            "ETag": {
+                "description": "Versão atual do recurso, pronta para o `If-Match` seguinte",
+                "schema": {
+                    "type": "string"
+                },
+                "example": "\"2\""
+            },
+            "IdempotencyReplayed": {
+                "description": "`true` quando a resposta repete uma operação anterior e nada foi criado ou alterado",
+                "schema": {
+                    "type": "string",
+                    "enum": [
+                        "true"
+                    ]
+                }
+            }
         },
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": { "data": { "$ref": "#/components/schemas/Proposta" } }
+        "requestBodies": {
+            "Versao": {
+                "required": false,
+                "description": "A versão pode vir aqui ou no header `If-Match`.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Versao"
+                        }
+                    }
+                }
             }
-          }
-        }
-      },
-      "RequisicaoMalformada": {
-        "description": "`MALFORMED_JSON` quando o corpo não é JSON válido, ou `MISSING_IDEMPOTENCY_KEY` quando o header é exigido e não veio",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-      },
-      "NaoEncontrado": {
-        "description": "`RESOURCE_NOT_FOUND`. Recurso inexistente, excluído logicamente, ou rota desconhecida",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-      },
-      "Conflito": {
-        "description": "`VERSION_CONFLICT` quando a versão enviada está defasada, `INVALID_STATUS_TRANSITION` quando a transição não existe no fluxo, `IMMUTABLE_RESOURCE` quando o registro está em estado final, `IDEMPOTENCY_KEY_REUSE` quando a chave foi usada com outro corpo",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-      },
-      "ErroDeValidacao": {
-        "description": "`VALIDATION_ERROR` com todos os campos inválidos de uma vez, ou `MISSING_VERSION` quando a versão não foi informada",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } }
-      }
-    },
-    "schemas": {
-      "NovoCliente": {
-        "type": "object",
-        "required": ["nome", "email", "documento"],
-        "additionalProperties": false,
-        "properties": {
-          "nome": { "type": "string", "minLength": 3, "maxLength": 150, "example": "Ana Carolina Souza" },
-          "email": { "type": "string", "format": "email", "maxLength": 255, "example": "ana@exemplo.com" },
-          "documento": {
-            "type": "string",
-            "description": "CPF ou CNPJ, com ou sem máscara. Aceita o CNPJ alfanumérico da IN RFB 2.229/2024.",
-            "example": "529.982.247-25"
-          }
-        }
-      },
-      "Cliente": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "nome": { "type": "string", "example": "Ana Carolina Souza" },
-          "email": { "type": "string", "example": "ana@exemplo.com" },
-          "documento": { "type": "string", "description": "Normalizado: sem máscara e em maiúsculas", "example": "52998224725" },
-          "documento_formatado": { "type": "string", "example": "529.982.247-25" },
-          "documento_tipo": { "type": "string", "enum": ["CPF", "CNPJ"] },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "ClienteResumo": {
-        "type": "object",
-        "description": "Resumo embutido na proposta. Não inclui documento — a listagem não espalha dado pessoal.",
-        "properties": {
-          "id": { "type": "integer" },
-          "nome": { "type": "string" },
-          "email": { "type": "string" }
-        }
-      },
-      "NovaProposta": {
-        "type": "object",
-        "required": ["cliente_id", "produto", "valor_mensal", "origem"],
-        "additionalProperties": false,
-        "properties": {
-          "cliente_id": { "type": "integer", "minimum": 1, "example": 1 },
-          "produto": { "type": "string", "minLength": 3, "maxLength": 120, "example": "Plano Ouro" },
-          "valor_mensal": {
-            "type": "string",
-            "description": "Decimal positivo com até duas casas. String, e não número, para não sofrer arredondamento de ponto flutuante.",
-            "pattern": "^\\d{1,10}(\\.\\d{1,2})?$",
-            "example": "1250.00"
-          },
-          "origem": { "type": "string", "enum": ["APP", "SITE", "API"] }
-        }
-      },
-      "AlteracaoProposta": {
-        "type": "object",
-        "additionalProperties": false,
-        "description": "Ao menos um campo alterável é obrigatório. A versão é obrigatória, no corpo ou no `If-Match`.",
-        "properties": {
-          "versao": { "type": "integer", "minimum": 1, "example": 1 },
-          "produto": { "type": "string", "minLength": 3, "maxLength": 120 },
-          "valor_mensal": { "type": "string", "pattern": "^\\d{1,10}(\\.\\d{1,2})?$" },
-          "origem": { "type": "string", "enum": ["APP", "SITE", "API"] }
-        }
-      },
-      "Versao": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "versao": { "type": "integer", "minimum": 1, "example": 1 }
-        }
-      },
-      "Proposta": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "cliente": { "$ref": "#/components/schemas/ClienteResumo" },
-          "produto": { "type": "string", "example": "Plano Ouro" },
-          "valor_mensal": { "type": "string", "example": "1250.00" },
-          "status": { "type": "string", "enum": ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "CANCELED"] },
-          "origem": { "type": "string", "enum": ["APP", "SITE", "API"] },
-          "versao": { "type": "integer", "description": "Incrementa a cada escrita. Usada no `If-Match`.", "example": 1 },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" },
-          "deleted_at": { "type": ["string", "null"], "format": "date-time" }
-        }
-      },
-      "Auditoria": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" },
-          "evento": { "type": "string", "enum": ["CREATED", "UPDATED_FIELDS", "STATUS_CHANGED", "DELETED_LOGICAL"] },
-          "actor": { "type": "string", "example": "user:123" },
-          "payload": {
-            "type": "object",
-            "description": "Depende do evento: snapshot em `CREATED`, `{campo: {de, para}}` em `UPDATED_FIELDS`, `{de, para}` em `STATUS_CHANGED`, `{status_no_momento, versao}` em `DELETED_LOGICAL`.",
-            "additionalProperties": true
-          },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Meta": {
-        "type": "object",
-        "properties": {
-          "page": { "type": "integer", "example": 1 },
-          "per_page": { "type": "integer", "example": 20 },
-          "total": { "type": "integer", "description": "Total da consulta, não da página", "example": 137 },
-          "total_pages": { "type": "integer", "example": 7 }
-        }
-      },
-      "Erro": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "object",
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "VALIDATION_ERROR",
-                  "MALFORMED_JSON",
-                  "MISSING_IDEMPOTENCY_KEY",
-                  "MISSING_VERSION",
-                  "RESOURCE_NOT_FOUND",
-                  "DUPLICATE_RESOURCE",
-                  "VERSION_CONFLICT",
-                  "INVALID_STATUS_TRANSITION",
-                  "IMMUTABLE_RESOURCE",
-                  "IDEMPOTENCY_KEY_REUSE",
-                  "RATE_LIMITED",
-                  "INTERNAL_ERROR"
-                ]
-              },
-              "message": { "type": "string", "example": "O registro foi alterado por outro processo." },
-              "details": {
+        },
+        "responses": {
+            "PropostaTransicionada": {
+                "description": "Transição aplicada, ou repetição de uma anterior",
+                "headers": {
+                    "ETag": {
+                        "$ref": "#/components/headers/ETag"
+                    },
+                    "Idempotency-Replayed": {
+                        "$ref": "#/components/headers/IdempotencyReplayed"
+                    }
+                },
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "$ref": "#/components/schemas/Proposta"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RequisicaoMalformada": {
+                "description": "`MALFORMED_JSON` quando o corpo não é JSON válido, ou `MISSING_IDEMPOTENCY_KEY` quando o header é exigido e não veio",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Erro"
+                        }
+                    }
+                }
+            },
+            "NaoEncontrado": {
+                "description": "`RESOURCE_NOT_FOUND`. Recurso inexistente, excluído logicamente, ou rota desconhecida",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Erro"
+                        }
+                    }
+                }
+            },
+            "Conflito": {
+                "description": "`VERSION_CONFLICT` quando a versão enviada está defasada, `INVALID_STATUS_TRANSITION` quando a transição não existe no fluxo, `IMMUTABLE_RESOURCE` quando o registro está em estado final, `IDEMPOTENCY_KEY_REUSE` quando a chave foi usada com outro corpo",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Erro"
+                        }
+                    }
+                }
+            },
+            "ErroDeValidacao": {
+                "description": "`VALIDATION_ERROR` com todos os campos inválidos de uma vez, ou `MISSING_VERSION` quando a versão não foi informada",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Erro"
+                        }
+                    }
+                }
+            },
+            "LimiteExcedido": {
+                "description": "`RATE_LIMITED`. Limite de requisicoes por cliente excedido. Os headers X-RateLimit-Limit, X-RateLimit-Window e Retry-After acompanham a resposta.",
+                "headers": {
+                    "X-RateLimit-Limit": {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Requisicoes permitidas na janela"
+                    },
+                    "X-RateLimit-Window": {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Tamanho da janela em segundos"
+                    },
+                    "Retry-After": {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Segundos ate liberar uma nova requisicao"
+                    }
+                },
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Erro"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "NovoCliente": {
                 "type": "object",
-                "description": "Contexto do erro. Em validação, `{campo: [mensagens]}`.",
-                "additionalProperties": true,
-                "example": { "versao_enviada": 3, "versao_atual": 5 }
-              },
-              "trace_id": { "type": "string", "description": "Mesmo valor do header `X-Trace-Id` e do log", "example": "01e2b666a0112a04" }
+                "required": [
+                    "nome",
+                    "email",
+                    "documento"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "nome": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 150,
+                        "example": "Ana Carolina Souza"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "example": "ana@exemplo.com"
+                    },
+                    "documento": {
+                        "type": "string",
+                        "description": "CPF ou CNPJ, com ou sem máscara. Aceita o CNPJ alfanumérico da IN RFB 2.229/2024.",
+                        "example": "529.982.247-25"
+                    }
+                }
+            },
+            "Cliente": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nome": {
+                        "type": "string",
+                        "example": "Ana Carolina Souza"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "ana@exemplo.com"
+                    },
+                    "documento": {
+                        "type": "string",
+                        "description": "Normalizado: sem máscara e em maiúsculas",
+                        "example": "52998224725"
+                    },
+                    "documento_formatado": {
+                        "type": "string",
+                        "example": "529.982.247-25"
+                    },
+                    "documento_tipo": {
+                        "type": "string",
+                        "enum": [
+                            "CPF",
+                            "CNPJ"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ClienteResumo": {
+                "type": "object",
+                "description": "Resumo embutido na proposta. Não inclui documento — a listagem não espalha dado pessoal.",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "nome": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    }
+                }
+            },
+            "NovaProposta": {
+                "type": "object",
+                "required": [
+                    "cliente_id",
+                    "produto",
+                    "valor_mensal",
+                    "origem"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "cliente_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "example": 1
+                    },
+                    "produto": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120,
+                        "example": "Plano Ouro"
+                    },
+                    "valor_mensal": {
+                        "type": "string",
+                        "description": "Decimal positivo com até duas casas. String, e não número, para não sofrer arredondamento de ponto flutuante.",
+                        "pattern": "^\\d{1,10}(\\.\\d{1,2})?$",
+                        "example": "1250.00"
+                    },
+                    "origem": {
+                        "type": "string",
+                        "enum": [
+                            "APP",
+                            "SITE",
+                            "API"
+                        ]
+                    }
+                }
+            },
+            "AlteracaoProposta": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Ao menos um campo alterável é obrigatório. A versão é obrigatória, no corpo ou no `If-Match`.",
+                "properties": {
+                    "versao": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "example": 1
+                    },
+                    "produto": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                    },
+                    "valor_mensal": {
+                        "type": "string",
+                        "pattern": "^\\d{1,10}(\\.\\d{1,2})?$"
+                    },
+                    "origem": {
+                        "type": "string",
+                        "enum": [
+                            "APP",
+                            "SITE",
+                            "API"
+                        ]
+                    }
+                }
+            },
+            "Versao": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "versao": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "example": 1
+                    }
+                }
+            },
+            "Proposta": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "cliente": {
+                        "$ref": "#/components/schemas/ClienteResumo"
+                    },
+                    "produto": {
+                        "type": "string",
+                        "example": "Plano Ouro"
+                    },
+                    "valor_mensal": {
+                        "type": "string",
+                        "example": "1250.00"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "DRAFT",
+                            "SUBMITTED",
+                            "APPROVED",
+                            "REJECTED",
+                            "CANCELED"
+                        ]
+                    },
+                    "origem": {
+                        "type": "string",
+                        "enum": [
+                            "APP",
+                            "SITE",
+                            "API"
+                        ]
+                    },
+                    "versao": {
+                        "type": "integer",
+                        "description": "Incrementa a cada escrita. Usada no `If-Match`.",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Auditoria": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "evento": {
+                        "type": "string",
+                        "enum": [
+                            "CREATED",
+                            "UPDATED_FIELDS",
+                            "STATUS_CHANGED",
+                            "DELETED_LOGICAL"
+                        ]
+                    },
+                    "actor": {
+                        "type": "string",
+                        "example": "user:123"
+                    },
+                    "payload": {
+                        "type": "object",
+                        "description": "Depende do evento: snapshot em `CREATED`, `{campo: {de, para}}` em `UPDATED_FIELDS`, `{de, para}` em `STATUS_CHANGED`, `{status_no_momento, versao}` em `DELETED_LOGICAL`.",
+                        "additionalProperties": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Meta": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 20
+                    },
+                    "total": {
+                        "type": "integer",
+                        "description": "Total da consulta, não da página",
+                        "example": 137
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "example": 7
+                    }
+                }
+            },
+            "Erro": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "enum": [
+                                    "VALIDATION_ERROR",
+                                    "MALFORMED_JSON",
+                                    "MISSING_IDEMPOTENCY_KEY",
+                                    "MISSING_VERSION",
+                                    "RESOURCE_NOT_FOUND",
+                                    "DUPLICATE_RESOURCE",
+                                    "VERSION_CONFLICT",
+                                    "INVALID_STATUS_TRANSITION",
+                                    "IMMUTABLE_RESOURCE",
+                                    "IDEMPOTENCY_KEY_REUSE",
+                                    "RATE_LIMITED",
+                                    "INTERNAL_ERROR"
+                                ]
+                            },
+                            "message": {
+                                "type": "string",
+                                "example": "O registro foi alterado por outro processo."
+                            },
+                            "details": {
+                                "type": "object",
+                                "description": "Contexto do erro. Em validação, `{campo: [mensagens]}`.",
+                                "additionalProperties": true,
+                                "example": {
+                                    "versao_enviada": 3,
+                                    "versao_atual": 5
+                                }
+                            },
+                            "trace_id": {
+                                "type": "string",
+                                "description": "Mesmo valor do header `X-Trace-Id` e do log",
+                                "example": "01e2b666a0112a04"
+                            }
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     }
-  }
 }

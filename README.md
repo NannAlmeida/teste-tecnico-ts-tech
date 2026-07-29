@@ -149,6 +149,7 @@ O `trace_id` também vai no header `X-Trace-Id` e no log. Se o cliente enviar o 
 | `INVALID_STATUS_TRANSITION` | 409 | Transição fora do fluxo |
 | `IMMUTABLE_RESOURCE` | 409 | Registro em estado final |
 | `IDEMPOTENCY_KEY_REUSE` | 409 | Mesma chave com payload diferente |
+| `RATE_LIMITED` | 429 | Limite de requisições por cliente excedido |
 | `INTERNAL_ERROR` | 500 | Falha inesperada (detalhe só no log) |
 
 ### Headers
@@ -161,6 +162,15 @@ O `trace_id` também vai no header `X-Trace-Id` e no log. Se o cliente enviar o 
 | `X-Trace-Id` | ambos | Correlação entre resposta e log |
 | `ETag` | saída | Versão atual do recurso, pronta para o `If-Match` seguinte |
 | `Idempotency-Replayed` | saída | `true` quando a resposta repete uma operação anterior |
+| `X-RateLimit-Limit` / `X-RateLimit-Window` / `Retry-After` | saída | Acompanham o `429` |
+
+### Rate limit
+
+Toda rota sob `/api` é limitada por cliente, identificado pelo IP. O padrão é **60 requisições por minuto**, configurável em `app/Config/RateLimit.php`.
+
+Excedido o limite, a resposta é `429 RATE_LIMITED` no mesmo envelope de erro, com `Retry-After` informando quantos segundos faltam para liberar. A implementação usa o `Throttler` do CodeIgniter — um token bucket sobre o cache configurado — então o limite se reabastece progressivamente, e não em blocos.
+
+O filtro **devolve** a resposta em vez de lançar exceção: filtro roda fora do `try/catch` do controller, e lançar ali tornaria o comportamento não testável.
 
 ---
 
