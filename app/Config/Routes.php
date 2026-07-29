@@ -3,10 +3,9 @@
 use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
-$routes->get('/', 'Home::index');
-
 $routes->set404Override('App\Controllers\NotFoundController::index');
 
+$routes->get('/', 'DocsController::index');
 $routes->get('docs', 'DocsController::index');
 
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function (RouteCollection $routes): void {

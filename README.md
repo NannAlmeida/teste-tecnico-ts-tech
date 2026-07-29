@@ -63,7 +63,7 @@ php spark serve --port 8080
 curl http://localhost:8080/api/v1/health
 ```
 
-**Documentação interativa:** `http://localhost:8080/docs` — Swagger UI sobre a spec OpenAPI 3.1 em `public/openapi.json`, com *try it out* habilitado. A página carrega o Swagger via CDN, então precisa de internet; a spec em si é servida localmente.
+**Documentação interativa:** a raiz (`http://localhost:8080`) e `/docs` servem o Swagger UI sobre a spec OpenAPI 3.1 de `public/openapi.json`, com *try it out* habilitado. A página carrega o Swagger via CDN, então precisa de internet; a spec em si é servida localmente.
 
 ---
 
@@ -75,7 +75,7 @@ Alternativa à instalação local. Sobe MySQL 8, PHP-FPM 8.3 e nginx, aplica as 
 docker compose up --build
 ```
 
-A API fica em `http://localhost:8080` e a documentação em `http://localhost:8080/docs`. O MySQL é publicado em `3307` no host, para não conflitar com uma instalação local na 3306.
+A API fica em `http://localhost:8080/api/v1` e a documentação na raiz, `http://localhost:8080`. O MySQL é publicado em `3307` no host, para não conflitar com uma instalação local na 3306.
 
 A primeira subida demora: o container instala as dependências, espera o MySQL inicializar, aplica as migrations e popula os dados antes de aceitar tráfego. Para acompanhar:
 
@@ -102,7 +102,7 @@ Duas notas de comportamento:
 composer test
 ```
 
-**318 testes, 807 asserções.** A suíte migra o banco de testes sozinha — basta o schema `teste_tecnico_test` existir vazio.
+**342 testes, 982 asserções.** A suíte migra o banco de testes sozinha — basta o schema `teste_tecnico_test` existir vazio.
 
 | Diretório | O que cobre |
 |---|---|
