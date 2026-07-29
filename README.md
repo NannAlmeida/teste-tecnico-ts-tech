@@ -63,6 +63,8 @@ php spark serve --port 8080
 curl http://localhost:8080/api/v1/health
 ```
 
+**Documentação interativa:** `http://localhost:8080/docs` — Swagger UI sobre a spec OpenAPI 3.1 em `public/openapi.json`, com *try it out* habilitado. A página carrega o Swagger via CDN, então precisa de internet; a spec em si é servida localmente.
+
 ---
 
 ## Testes
