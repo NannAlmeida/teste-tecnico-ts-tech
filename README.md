@@ -67,6 +67,29 @@ curl http://localhost:8080/api/v1/health
 
 ---
 
+## Docker
+
+Alternativa à instalação local. Sobe MySQL 8, PHP-FPM 8.3 e nginx, aplica as migrations e popula os dados:
+
+```bash
+docker compose up --build
+```
+
+A API fica em `http://localhost:8080` e a documentação em `http://localhost:8080/docs`. O MySQL é publicado em `3307` no host, para não conflitar com uma instalação local na 3306.
+
+Rodar a suíte dentro do container:
+
+```bash
+docker compose exec app php vendor/bin/phpunit
+```
+
+Duas notas de comportamento:
+
+- A configuração do banco chega por **variável de ambiente**, não por arquivo. O `DotEnv` do CodeIgniter só define variável que ainda não existe, então o `.env` local do host é ignorado dentro do container e permanece intacto.
+- O entrypoint roda o seed a cada inicialização, e o `DatabaseSeeder` limpa antes de popular — reiniciar devolve o ambiente ao mesmo conjunto de dados. Para desligar, `SEED_ON_START=false`.
+
+---
+
 ## Testes
 
 ```bash

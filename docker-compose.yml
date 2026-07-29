@@ -1,0 +1,60 @@
+name: teste-tecnico
+
+services:
+  db:
+    image: mysql:8.4
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: teste_tecnico
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "3307:3306"
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # O CodeIgniter le configuracao de variavel de ambiente, e o DotEnv so
+      # define o que ainda nao existe. Estas vencem o .env do host, entao o
+      # arquivo local do desenvolvedor nao precisa ser tocado.
+      CI_ENVIRONMENT: development
+      app.baseURL: http://localhost:8080/
+      # Nomes com ponto nao viram variavel de shell; o entrypoint usa estas.
+      DB_HOST: db
+      DB_USER: root
+      DB_PASS: root
+      database.default.hostname: db
+      database.default.database: teste_tecnico
+      database.default.username: root
+      database.default.password: root
+      database.tests.hostname: db
+      database.tests.database: teste_tecnico_test
+      database.tests.username: root
+      database.tests.password: root
+    volumes:
+      - .:/var/www/html
+
+  web:
+    image: nginx:1.27-alpine
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  db-data:
