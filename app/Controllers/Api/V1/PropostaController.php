@@ -57,11 +57,53 @@ final class PropostaController extends BaseApiController
         return $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta);
     }
 
+    public function submit(string $id): ResponseInterface
+    {
+        $chave = $this->idempotencyKeyObrigatoria();
+        $versao = $this->versaoObrigatoria();
+
+        return $this->responderTransicao($this->servico->submeter((int) $id, $versao, $this->actor(), $chave));
+    }
+
+    public function approve(string $id): ResponseInterface
+    {
+        return $this->responderTransicao(
+            $this->servico->aprovar((int) $id, $this->versaoObrigatoria(), $this->actor(), $this->idempotencyKey()),
+        );
+    }
+
+    public function reject(string $id): ResponseInterface
+    {
+        return $this->responderTransicao(
+            $this->servico->rejeitar((int) $id, $this->versaoObrigatoria(), $this->actor(), $this->idempotencyKey()),
+        );
+    }
+
+    public function cancel(string $id): ResponseInterface
+    {
+        return $this->responderTransicao(
+            $this->servico->cancelar((int) $id, $this->versaoObrigatoria(), $this->actor(), $this->idempotencyKey()),
+        );
+    }
+
     public function delete(string $id): ResponseInterface
     {
         $this->servico->excluir((int) $id, $this->versaoObrigatoria(), $this->actor());
 
         return $this->responder->noContent();
+    }
+
+    /**
+     * @param array{recurso: Proposta, replay: bool} $resultado
+     */
+    private function responderTransicao(array $resultado): ResponseInterface
+    {
+        $proposta = $resultado['recurso'];
+
+        return $this->comMarcaDeReplay(
+            $this->comVersao($this->responder->success(PropostaResource::item($proposta)), $proposta),
+            $resultado['replay'],
+        );
     }
 
     private function comVersao(ResponseInterface $resposta, Proposta $proposta): ResponseInterface

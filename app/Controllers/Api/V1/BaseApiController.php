@@ -164,6 +164,6 @@ abstract class BaseApiController extends Controller
     {
         return $replay
             ? $resposta->setHeader(self::HEADER_IDEMPOTENCY_REPLAYED, 'true')
-            : $resposta;
+            : $resposta->removeHeader(self::HEADER_IDEMPOTENCY_REPLAYED);
     }
 }

@@ -15,4 +15,9 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('propostas/(:num)', 'PropostaController::show/$1');
     $routes->patch('propostas/(:num)', 'PropostaController::update/$1');
     $routes->delete('propostas/(:num)', 'PropostaController::delete/$1');
+
+    $routes->post('propostas/(:num)/submit', 'PropostaController::submit/$1');
+    $routes->post('propostas/(:num)/approve', 'PropostaController::approve/$1');
+    $routes->post('propostas/(:num)/reject', 'PropostaController::reject/$1');
+    $routes->post('propostas/(:num)/cancel', 'PropostaController::cancel/$1');
 });
