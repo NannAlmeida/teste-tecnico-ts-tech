@@ -12,8 +12,11 @@ if [ ! -f vendor/autoload.php ]; then
     composer install --no-interaction --prefer-dist
 fi
 
+# A checagem usa o proprio mysqli em vez do cliente de linha de comando: o
+# compose ja espera o healthcheck do banco, entao isto e so rede de seguranca e
+# nao justifica carregar o pacote mysql-client na imagem.
 echo "[entrypoint] aguardando o MySQL em ${DB_HOST}"
-until mysqladmin ping -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASS}" --silent; do
+until php -r 'mysqli_report(MYSQLI_REPORT_OFF); exit(@mysqli_connect(getenv("DB_HOST"), getenv("DB_USER"), getenv("DB_PASS")) ? 0 : 1);'; do
     sleep 2
 done
 

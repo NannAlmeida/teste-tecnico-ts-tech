@@ -1,10 +1,11 @@
 FROM php:8.3-fpm-alpine
 
-# mbstring e json ja vem habilitados na imagem oficial; mysqli e intl nao.
-RUN apk add --no-cache icu-libs mysql-client \
- && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev \
- && docker-php-ext-install -j"$(nproc)" mysqli intl \
- && apk del .build-deps
+# mbstring e json ja vem habilitados na imagem oficial; mysqli e intl nao. O
+# instalador resolve as dependencias de build, compila e remove o toolchain,
+# poupando o vaivem manual de apk add --virtual e apk del.
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+
+RUN install-php-extensions mysqli intl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
