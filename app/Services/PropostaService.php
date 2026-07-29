@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\DTO\CreatePropostaDTO;
+use App\DTO\PaginacaoQuery;
 use App\DTO\PropostaQuery;
 use App\DTO\UpdatePropostaDTO;
 use App\Entities\Proposta;
+use App\Entities\PropostaAuditoria;
 use App\Enums\PropostaStatus;
 use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\ValidationException;
@@ -78,6 +80,20 @@ class PropostaService
     public function listar(PropostaQuery $query): array
     {
         return $this->repository->search($query);
+    }
+
+    /**
+     * A trilha segue o mesmo destino da proposta: se ela nao existe ou foi
+     * excluida logicamente, a auditoria tambem responde 404, para o recurso nao
+     * continuar alcancavel por uma rota lateral.
+     *
+     * @return array{items: list<PropostaAuditoria>, total: int}
+     */
+    public function listarAuditoria(int $id, PaginacaoQuery $paginacao): array
+    {
+        $this->repository->findOrFail($id);
+
+        return $this->auditorias->paginateByProposta($id, $paginacao->page, $paginacao->perPage);
     }
 
     /**

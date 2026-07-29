@@ -21,4 +21,6 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('propostas/(:num)/approve', 'PropostaController::approve/$1');
     $routes->post('propostas/(:num)/reject', 'PropostaController::reject/$1');
     $routes->post('propostas/(:num)/cancel', 'PropostaController::cancel/$1');
+
+    $routes->get('propostas/(:num)/auditoria', 'PropostaAuditoriaController::index/$1');
 });
