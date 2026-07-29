@@ -195,6 +195,16 @@ Excedido o limite, a resposta é `429 RATE_LIMITED` no mesmo envelope de erro, c
 
 O filtro **devolve** a resposta em vez de lançar exceção: filtro roda fora do `try/catch` do controller, e lançar ali tornaria o comportamento não testável.
 
+### Cache de leitura
+
+A leitura individual de proposta (`GET /propostas/{id}`, e todo `findOrFail` interno) é cacheada por 60 segundos, configurável em `app/Config/ReadCache.php`.
+
+O cache vive no `PropostaRepository`, e não numa camada acima, porque é ali que passam tanto a leitura quanto **todas** as escritas — invalidação e cache ficam na mesma classe. Alteração, transição e exclusão descartam a entrada antes de reler.
+
+Ausência não é cacheada: um id ainda inexistente pode ser criado logo depois, e o negativo sobreviveria à criação.
+
+A busca paginada não é cacheada — qualquer escrita afetaria um conjunto indeterminado de combinações de filtro, e ela já custa duas queries fixas.
+
 ---
 
 ## Endpoints
