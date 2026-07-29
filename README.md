@@ -22,7 +22,7 @@ Uma proposta nasce em rascunho, percorre um fluxo de status controlado e termina
 **Requisitos:** PHP 8.2+ com as extensões `mysqli`, `intl`, `mbstring` e `json`; MySQL 8; Composer.
 
 ```bash
-git clone <url-do-repositorio> && cd teste-tecnico-ts
+git clone https://github.com/NannAlmeida/teste-tecnico-ts-tech.git && cd teste-tecnico-ts
 ```
 
 ```bash
