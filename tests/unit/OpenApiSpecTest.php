@@ -184,6 +184,19 @@ final class OpenApiSpecTest extends CIUnitTestCase
         $this->assertStringNotContainsString('&#x2F;', $html, 'entidade HTML nao e decodificada dentro de script');
     }
 
+    public function testRaizServeADocumentacaoNoLugarDaPaginaDoStarter(): void
+    {
+        $resposta = $this->get('/');
+
+        $resposta->assertStatus(200);
+
+        $html = $resposta->getBody();
+
+        $this->assertStringContainsString('swagger-ui-bundle.js', $html);
+        $this->assertStringContainsString('url: "/openapi.json"', $html);
+        $this->assertStringNotContainsString('Welcome to CodeIgniter', $html);
+    }
+
     public function testTodaOperacaoTemResumoERespostaDeSucesso(): void
     {
         foreach ($this->spec['paths'] as $caminho => $operacoes) {
