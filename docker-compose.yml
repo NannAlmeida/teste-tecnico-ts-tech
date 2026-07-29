@@ -45,11 +45,21 @@ services:
       database.tests.password: root
     volumes:
       - .:/var/www/html
+    healthcheck:
+      # O entrypoint instala dependencia, espera o banco, migra e popula antes
+      # de subir o php-fpm. Sem isto o nginx aceitaria trafego durante esse
+      # intervalo e responderia 502.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
 
   web:
     image: nginx:1.27-alpine
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     ports:
       - "8080:80"
     volumes:

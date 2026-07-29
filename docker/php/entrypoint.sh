@@ -3,6 +3,10 @@ set -e
 
 cd /var/www/html
 
+# O php-fpm roda como www-data, e o bind mount chega com o dono do host.
+mkdir -p writable/cache writable/logs writable/session writable/uploads writable/debugbar
+chmod -R 777 writable
+
 if [ ! -f vendor/autoload.php ]; then
     echo "[entrypoint] instalando dependencias"
     composer install --no-interaction --prefer-dist

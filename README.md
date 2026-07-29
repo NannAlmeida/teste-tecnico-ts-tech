@@ -77,6 +77,12 @@ docker compose up --build
 
 A API fica em `http://localhost:8080` e a documentação em `http://localhost:8080/docs`. O MySQL é publicado em `3307` no host, para não conflitar com uma instalação local na 3306.
 
+A primeira subida demora: o container instala as dependências, espera o MySQL inicializar, aplica as migrations e popula os dados antes de aceitar tráfego. Para acompanhar:
+
+```bash
+docker compose logs -f app
+```
+
 Rodar a suíte dentro do container:
 
 ```bash

@@ -8,7 +8,12 @@ RUN apk add --no-cache icu-libs mysql-client \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-COPY docker/php/pool.conf /usr/local/etc/php-fpm.d/zz-app.conf
+# Por padrao o php-fpm remove o ambiente do container dos workers, e a
+# configuracao do banco chega justamente por variavel de ambiente. Aqui a
+# diretiva e acrescentada ao proprio pool www, e nao num arquivo separado com um
+# segundo [www], que o php-fpm recusa como pool duplicado.
+RUN printf '\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/www.conf
+
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint
 
 RUN chmod +x /usr/local/bin/entrypoint
