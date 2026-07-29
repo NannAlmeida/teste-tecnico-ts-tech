@@ -16,8 +16,8 @@ final readonly class PropostaQuery
         'cliente_id', 'status', 'origem', 'produto', 'valor_min', 'valor_max',
         'created_from', 'created_to', 'q', 'incluir_excluidas', 'sort', 'page', 'per_page',
     ];
-    public const PER_PAGE_DEFAULT = 20;
-    public const PER_PAGE_MAX = 100;
+    public const PER_PAGE_DEFAULT = PaginacaoQuery::PER_PAGE_DEFAULT;
+    public const PER_PAGE_MAX = PaginacaoQuery::PER_PAGE_MAX;
     public const SORT_DEFAULT = '-created_at';
 
     /**

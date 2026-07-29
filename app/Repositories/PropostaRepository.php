@@ -20,9 +20,16 @@ class PropostaRepository implements IdempotentRepository
     {
     }
 
+    private const SELECT_COM_CLIENTE = 'propostas.*,'
+        . ' clientes.nome AS cliente_nome,'
+        . ' clientes.email AS cliente_email';
+
     public function find(int $id): ?Proposta
     {
-        return $this->model->find($id);
+        return $this->model
+            ->select(self::SELECT_COM_CLIENTE)
+            ->join('clientes', 'clientes.id = propostas.cliente_id')
+            ->find($id);
     }
 
     public function findOrFail(int $id): Proposta
@@ -101,12 +108,7 @@ class PropostaRepository implements IdempotentRepository
     public function search(PropostaQuery $query): array
     {
         $builder = $this->scoped($query)
-            ->select(
-                'propostas.*,'
-                . ' clientes.nome AS cliente_nome,'
-                . ' clientes.email AS cliente_email,'
-                . ' clientes.documento AS cliente_documento'
-            )
+            ->select(self::SELECT_COM_CLIENTE)
             ->join('clientes', 'clientes.id = propostas.cliente_id');
 
         $this->applyFilters($builder, $query);
