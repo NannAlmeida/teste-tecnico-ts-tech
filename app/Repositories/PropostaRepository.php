@@ -13,6 +13,7 @@ use App\Models\PropostaModel;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
+use Config\ReadCache;
 
 class PropostaRepository implements IdempotentRepository
 {
@@ -24,12 +25,48 @@ class PropostaRepository implements IdempotentRepository
         . ' clientes.nome AS cliente_nome,'
         . ' clientes.email AS cliente_email';
 
+    private const CACHE_PREFIXO = 'proposta_';
+
+    /**
+     * A leitura individual e cacheada aqui, e nao numa camada acima, porque e
+     * neste repositorio que passam tanto ela quanto todas as escritas — cache e
+     * invalidacao ficam juntos. Ausencia nao e cacheada: um id ainda inexistente
+     * pode ser criado logo depois, e o negativo sobreviveria a criacao.
+     */
     public function find(int $id): ?Proposta
+    {
+        $config = config(ReadCache::class);
+
+        if (! $config->habilitado) {
+            return $this->carregar($id);
+        }
+
+        $linha = service('cache')->get(self::CACHE_PREFIXO . $id);
+
+        if (is_array($linha)) {
+            return (new Proposta())->injectRawData($linha);
+        }
+
+        $proposta = $this->carregar($id);
+
+        if ($proposta !== null) {
+            service('cache')->save(self::CACHE_PREFIXO . $id, $proposta->toRawArray(), $config->ttl);
+        }
+
+        return $proposta;
+    }
+
+    private function carregar(int $id): ?Proposta
     {
         return $this->model
             ->select(self::SELECT_COM_CLIENTE)
             ->join('clientes', 'clientes.id = propostas.cliente_id')
             ->find($id);
+    }
+
+    private function esquecer(int $id): void
+    {
+        service('cache')->delete(self::CACHE_PREFIXO . $id);
     }
 
     public function findOrFail(int $id): Proposta
@@ -77,6 +114,7 @@ class PropostaRepository implements IdempotentRepository
             ->where('deleted_at', null)
             ->update($id, $changes);
 
+        $this->esquecer($id);
         $this->assertLockHeld($id, $expectedVersion);
 
         return $this->findOrFail($id);
@@ -96,6 +134,7 @@ class PropostaRepository implements IdempotentRepository
                 'versao' => $expectedVersion + 1,
             ]);
 
+        $this->esquecer($id);
         $this->assertLockHeld($id, $expectedVersion);
     }
 

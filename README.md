@@ -67,6 +67,29 @@ curl http://localhost:8080/api/v1/health
 
 ---
 
+## Docker
+
+Alternativa à instalação local. Sobe MySQL 8, PHP-FPM 8.3 e nginx, aplica as migrations e popula os dados:
+
+```bash
+docker compose up --build
+```
+
+A API fica em `http://localhost:8080` e a documentação em `http://localhost:8080/docs`. O MySQL é publicado em `3307` no host, para não conflitar com uma instalação local na 3306.
+
+Rodar a suíte dentro do container:
+
+```bash
+docker compose exec app php vendor/bin/phpunit
+```
+
+Duas notas de comportamento:
+
+- A configuração do banco chega por **variável de ambiente**, não por arquivo. O `DotEnv` do CodeIgniter só define variável que ainda não existe, então o `.env` local do host é ignorado dentro do container e permanece intacto.
+- O entrypoint roda o seed a cada inicialização, e o `DatabaseSeeder` limpa antes de popular — reiniciar devolve o ambiente ao mesmo conjunto de dados. Para desligar, `SEED_ON_START=false`.
+
+---
+
 ## Testes
 
 ```bash
@@ -149,6 +172,7 @@ O `trace_id` também vai no header `X-Trace-Id` e no log. Se o cliente enviar o 
 | `INVALID_STATUS_TRANSITION` | 409 | Transição fora do fluxo |
 | `IMMUTABLE_RESOURCE` | 409 | Registro em estado final |
 | `IDEMPOTENCY_KEY_REUSE` | 409 | Mesma chave com payload diferente |
+| `RATE_LIMITED` | 429 | Limite de requisições por cliente excedido |
 | `INTERNAL_ERROR` | 500 | Falha inesperada (detalhe só no log) |
 
 ### Headers
@@ -161,6 +185,25 @@ O `trace_id` também vai no header `X-Trace-Id` e no log. Se o cliente enviar o 
 | `X-Trace-Id` | ambos | Correlação entre resposta e log |
 | `ETag` | saída | Versão atual do recurso, pronta para o `If-Match` seguinte |
 | `Idempotency-Replayed` | saída | `true` quando a resposta repete uma operação anterior |
+| `X-RateLimit-Limit` / `X-RateLimit-Window` / `Retry-After` | saída | Acompanham o `429` |
+
+### Rate limit
+
+Toda rota sob `/api` é limitada por cliente, identificado pelo IP. O padrão é **60 requisições por minuto**, configurável em `app/Config/RateLimit.php`.
+
+Excedido o limite, a resposta é `429 RATE_LIMITED` no mesmo envelope de erro, com `Retry-After` informando quantos segundos faltam para liberar. A implementação usa o `Throttler` do CodeIgniter — um token bucket sobre o cache configurado — então o limite se reabastece progressivamente, e não em blocos.
+
+O filtro **devolve** a resposta em vez de lançar exceção: filtro roda fora do `try/catch` do controller, e lançar ali tornaria o comportamento não testável.
+
+### Cache de leitura
+
+A leitura individual de proposta (`GET /propostas/{id}`, e todo `findOrFail` interno) é cacheada por 60 segundos, configurável em `app/Config/ReadCache.php`.
+
+O cache vive no `PropostaRepository`, e não numa camada acima, porque é ali que passam tanto a leitura quanto **todas** as escritas — invalidação e cache ficam na mesma classe. Alteração, transição e exclusão descartam a entrada antes de reler.
+
+Ausência não é cacheada: um id ainda inexistente pode ser criado logo depois, e o negativo sobreviveria à criação.
+
+A busca paginada não é cacheada — qualquer escrita afetaria um conjunto indeterminado de combinações de filtro, e ela já custa duas queries fixas.
 
 ---
 
